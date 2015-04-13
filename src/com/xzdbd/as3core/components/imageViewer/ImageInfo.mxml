@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!---
+	图片详细信息展示组件，一般和 <code>ImageBrowser.mxml</code> 搭配使用.
+	
+	<p>主要包括图片的标题、采集日期和拍摄角度等信息.</p>
+
+	@mxml
+	<p> 
+	下面代码演示如何使用 <code>ImageInfo</code> 类： 
+	<p>首先，引用命名空间  <b><code>xmlns:as3core="http://www.xzdbd.net/2013/flex/as3core"</code></b>，调用如下：</p>
+	<pre>
+	&lt;as3core:ImageInfo
+		<b>Properties</b>
+		currentPhoto="{selectedPhotoItem}"
+		
+		<b>Styles</b> 
+		width="200" 
+		height="100%" /&gt;
+	
+	其中，<code>selectedPhotoItem</code> 为外部选中的图片对象(<code>PhotoItem</code>).
+	</pre>
+	</p>
+
+	@author xzdbd
+	创建于 2013-4-23,下午2:05:23.
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:imageViewer="com.xzdbd.as3core.components.imageViewer.*"
+		 width="100%" height="100%" >
+	
+	<fx:Script>
+		<![CDATA[
+			
+			//当前显示的图片
+			[Bindable]
+			private var _currentPhoto:PhotoItem;
+			
+			/**
+			 * 当前显示的图片对象，所展示出来的图片信息都是从该对象中读取。
+			 * @param photo 图片对象。
+			 */
+			public function set currentPhoto(photo:PhotoItem):void
+			{
+				_currentPhoto = photo;
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!--- @private -->
+		<mx:DateFormatter id="longDateFormatter" formatString="YYYY/MM/DD JJ:NN:SS" />
+	</fx:Declarations>
+	
+	<s:Rect width="100%" height="100%"
+			radiusX="2" radiusY="2"
+			alpha="0.9">
+		<s:fill>
+			<s:SolidColor color="0xFFFFFF"/>
+		</s:fill>
+	</s:Rect>
+	
+	<s:VGroup width="100%" height="100%" paddingTop="10" paddingLeft="5" gap="8">
+		<s:Label text="{_currentPhoto.fileTitle}" 
+				 fontSize="14" fontWeight="bold" color="0x333333" 
+				 lineBreak="toFit" maxDisplayedLines="4"
+				 width="100%"/>
+		
+		<s:VGroup verticalAlign="middle" gap="6" paddingTop="10">
+			<s:Label text="拍摄于" fontSize="13" fontWeight="normal" color="0x333333" />
+			<s:Label text="{longDateFormatter.format(_currentPhoto.collectDate)}" fontSize="13" fontWeight="normal" color="0x0000FF" paddingLeft="4" />
+		</s:VGroup>
+		
+		<s:HGroup verticalAlign="middle" gap="4">
+			<s:Label text="拍摄角度:" fontSize="12" fontWeight="bold" color="0x333333" />
+			<imageViewer:Compass rotateAngle="{_currentPhoto.angle}" />
+		</s:HGroup>
+	</s:VGroup>
+	
+</s:Group>
+
+
+
+
+
+
+
+
+
+
+
+

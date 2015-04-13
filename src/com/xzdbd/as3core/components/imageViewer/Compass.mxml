@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!---
+	图片信息中的指南针组件.
+
+	@author xzdbd
+	创建于 2013-05-13,上午10:46:32.
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 creationComplete="init()"
+		 width="{compassImage.height}"
+		 height="{compassImage.height}" >
+
+	<fx:Script>
+		<![CDATA[
+			import mx.events.EffectEvent;
+			
+			//指南针上一个角度值。
+			[Bindable]
+			private var preAngle:Number;
+			
+			[Bindable]
+			private var _rotateAngle:Number;
+			
+			/**
+			 * 指南针的旋转角度（顺时针，正北方向为 0 度）。
+			 */
+			public function set rotateAngle(angle:Number):void
+			{
+				_rotateAngle = angle;
+				
+				//setRotate.angleTo = 90 - _rotateAngle;
+				setRotateEffect.angleTo = _rotateAngle;
+				
+				//setRotate.end();
+				setRotateEffect.play();
+			}
+			
+			/**
+			 * 指南针旋转效果结束时的默认处理函数。
+			 */
+			protected function setRotate_effectEndHandler(event:EffectEvent):void
+			{
+				preAngle = setRotateEffect.angleTo;
+			}
+
+			private function init():void
+			{
+				//初始化为正北方向为0度
+				preAngle = 0; 
+			}
+
+		]]>
+	</fx:Script>
+
+	<fx:Declarations>
+		<!--- 指南针旋转效果对象。 -->
+		<s:Rotate id="setRotateEffect"
+				  angleFrom="{preAngle}"
+				  duration="900"
+				  transformX="{compassImage.width/2}"
+				  transformY="{compassImage.height-compassImage.width/2}"
+				  target="{compassImage}"
+				  effectEnd="setRotate_effectEndHandler(event)"/>
+	</fx:Declarations>
+
+	<!--- 指南针位图对象 -->
+	<s:BitmapImage id="compassImage"
+				   source="@Embed('./images/compass.png')"
+				   smooth="true"
+				   width="70"
+				   height="70"/>
+</s:Group>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

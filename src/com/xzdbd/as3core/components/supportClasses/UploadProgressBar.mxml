@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!---
+	显示在 DataGrid 中的进度条，用于显示对应文件的上传进度.
+	
+	@author郝超
+	创建于 2013-7-23,下午2:08:47.
+-->
+<mx:HBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 creationComplete="creationCompleteHandler()" 
+		 fontSize="10" fontWeight="normal" fontThickness="1"
+		 width="100%" verticalAlign="middle" >
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			//文件对象
+			private var fileRef:FileReference;
+			
+			[Bindable]
+			private var _data:Object;
+			
+			/**
+			 * 重写父类 data get方法。
+			 */
+			override public function get data():Object 
+			{
+				return _data;
+			}
+			
+			/**
+			 * 重写父类 data set方法。
+			 */
+			override public function set data(value:Object):void 
+			{
+				_data = value;
+				
+				fileRef = data as FileReference;
+				if (fileRef == null)
+					return;
+				
+				progressBar.setProgress(0, 100);
+				fileRef.addEventListener(ProgressEvent.PROGRESS, fileUploadProgressHandler);
+				//给当前文件对象注册上传完成监听
+				fileRef.addEventListener(Event.COMPLETE, fileUploadComplete);
+			}
+			
+			/**
+			 * 初始化文件上传进度条控件，并对与其绑定的文件对象上传进度进行关联。
+			 * <br>说明：仅供内部调用。
+			 */
+			private function creationCompleteHandler():void
+			{
+				removeEventListener(FlexEvent.CREATION_COMPLETE, creationCompleteHandler);
+				progressBar.setProgress(0, 100);
+			}
+			
+			/**
+			 * 读取文件上传进度。
+			 */
+			private function fileUploadProgressHandler(event:ProgressEvent):void
+			{
+				progressBar.setProgress(event.bytesLoaded, event.bytesTotal);
+			}
+			
+			/**
+			 * 文件上传完成时，调用该方法。
+			 */
+			private function fileUploadComplete(event:Event):void
+			{
+				fileRef.removeEventListener(ProgressEvent.PROGRESS, fileUploadProgressHandler);
+			}
+		]]>
+	</fx:Script>
+	
+	<!--- 文件上传进度条对象 -->
+	<mx:ProgressBar id="progressBar"
+					verticalCenter="true"
+					width="{this.width - 15}"
+					paddingLeft="5"
+					maximum="100" minimum="0"
+					labelPlacement="center"
+					mode="manual"
+					label="%3%%"
+					textAlign="left"/>
+</mx:HBox>
+
+
+
+
+
+
+
+
+
+
+
+
+

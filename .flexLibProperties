@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<flexLibProperties includeAllClasses="true" useMultiPlatformConfig="false" version="3">
+  <includeClasses>
+    <classEntry path="com.xzdbd.as3core.components.buttons.IconButton"/>
+    <classEntry path="com.xzdbd.as3core.components.buttons.ButtonImage"/>
+    <classEntry path="com.xzdbd.as3core.components.labels.InfoText"/>
+    <classEntry path="com.xzdbd.as3core.components.labels.LabelTitle"/>
+    <classEntry path="com.xzdbd.as3core.components.labels.LinkLabel"/>
+    <classEntry path="com.xzdbd.as3core.components.supportClasses.PageToolBar"/>
+    <classEntry path="com.xzdbd.as3core.utils.supportClasses.FilterItem"/>
+    <classEntry path="com.xzdbd.as3core.components.labels.NoticeLabel"/>
+    <classEntry path="com.xzdbd.as3core.utils.TreeUtils"/>
+  </includeClasses>
+  <includeResources/>
+  <namespaceManifests>
+    <namespaceManifestEntry manifest="manifest.xml" namespace="http://www.xzdbd.com/2013/flex/as3core"/>
+  </namespaceManifests>
+</flexLibProperties>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!---
+	com.xzdbd.as3core.components.buttons.IconButton 的皮肤类实现.
+
+	@author xzdbd
+	创建于 2013-5-9,下午6:35:42.
+-->
+<s:SparkSkin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		xmlns:mx="library://ns.adobe.com/flex/mx"
+		minWidth="21" minHeight="21" alpha.disabled="0.5" >
+	<!-- host component -->
+	<fx:Metadata>
+		<![CDATA[  
+			[HostComponent("com.xzdbd.as3core.components.buttons.IconButton")]
+		]]>   
+	</fx:Metadata>
+	
+	<!-- states -->
+	<s:states>
+		<s:State name="up"/>
+		<s:State name="over"/>
+		<s:State name="down"/>
+		<s:State name="disabled"/>
+	</s:states>
+	
+	<!---
+		SkinParts
+		name=labelDisplay, type=spark.components.supportClasses.TextBase, required=false
+	-->
+	<s:Graphic>
+		<s:BitmapImage source.up="{hostComponent.upIcon}"
+					   source.over="{hostComponent.overIcon}"
+					   source.down="{hostComponent.downIcon}"
+					   source.disabled="{hostComponent.disabledIcon}"/>
+	</s:Graphic>
+	
+	<s:Label id="labelDisplay"
+			 textAlign="center"
+			 verticalAlign="middle"
+			 maxDisplayedLines="1"
+			 fontSize="14"
+			 horizontalCenter="0" verticalCenter="1"
+			 left="10" right="10" top="2" bottom="2">
+	</s:Label>  
+</s:SparkSkin>
+
+
+

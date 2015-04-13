@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!---
+	显示在 DataGrid 中的功能按钮，用于取消上传文件列表中对应的文件.
+
+	@author郝超
+	创建于 2013-7-23,下午2:08:47.
+-->
+<mx:Canvas xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		   xmlns:s="library://ns.adobe.com/flex/spark" 
+		   xmlns:mx="library://ns.adobe.com/flex/mx"
+		   xmlns:buttons="com.xzdbd.as3core.components.buttons.*"
+		   creationComplete="creationCompleteHandler()">
+	
+	<fx:Metadata>
+		/**
+		* 取消指定加载文件时派发该事件。
+		*/
+		[Event(name="cancelUploadEvent", type="flash.events.MouseEvent")]
+	</fx:Metadata>
+
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import com.xzdbd.as3core.IconAssets;
+			
+			//文件对象
+			private var fileRef:FileReference;
+			
+			//标识当前删除按钮是否可用
+			[Bindable]
+			private var cancelable:Boolean;
+			
+			[Bindable]
+			private var _data:Object;
+			
+			/**
+			 * 重写父类 data get方法。
+			 */
+			override public function get data():Object 
+			{
+				return _data;
+			}
+			
+			/**
+			 * 重写父类 data set方法。
+			 */
+			override public function set data(value:Object):void 
+			{
+				_data = value;
+				
+				fileRef = data as FileReference;
+				if (fileRef == null)
+					return;
+				
+				cancelable = true;
+				
+				//给当前附件注册监听器
+				//如果附件已经上传完成，则将取消按钮的enabled设置为false(不可操作)
+				fileRef.addEventListener(Event.COMPLETE, fileUploadComplete);
+			}
+			
+			/**
+			 * 组件初始化方法。
+			 */
+			private function creationCompleteHandler():void
+			{
+				removeEventListener(FlexEvent.CREATION_COMPLETE, creationCompleteHandler);
+				
+				cancelable = true;
+			}
+			
+			/**
+			 * 附件上传完成时，调用该方法。
+			 */
+			private function fileUploadComplete(event:Event):void
+			{
+				cancelable = false;
+			}
+			
+			/**
+			 * 监听取消按钮的按下事件。
+			 */
+			private function cancelUpload():void
+			{
+				dispatchEvent(new MouseEvent("cancelUploadEvent", true));
+			} 
+		]]>
+	</fx:Script>
+	
+	<buttons:ButtonImage source="{cancelable ? IconAssets.iconClass('cancelUploadIcon') : IconAssets.iconClass('cancelUploadIcon_disable')}" 
+						 click="cancelUpload()"
+						 enabled="{cancelable}"
+						 mouseEnabled="{cancelable}" 
+						 horizontalCenter="0" verticalCenter="0" />
+</mx:Canvas>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

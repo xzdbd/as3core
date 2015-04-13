@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- manifest.xml -->
+
+<componentPackage>
+	<!-- components -->
+	<component id="ButtonImage" class="com.xzdbd.as3core.components.buttons.ButtonImage"/>
+	<component id="IconButton" class="com.xzdbd.as3core.components.buttons.IconButton"/>
+	<component id="VerticalButton" class="com.xzdbd.as3core.components.buttons.VerticalButton"/>
+	<component id="VerticalTabBar" class="com.xzdbd.as3core.components.buttons.VerticalTabBar"/>
+	<component id="ImageBrowser" class="com.xzdbd.as3core.components.imageViewer.ImageBrowser"/>
+	<component id="ImageInfo" class="com.xzdbd.as3core.components.imageViewer.ImageInfo"/>
+	<component id="PhotoItem" class="com.xzdbd.as3core.components.imageViewer.PhotoItem"/>
+	<component id="TextInputProme" class="com.xzdbd.as3core.components.TextInputProme"/>
+	<component id="RoundCornerTextInput" class="com.xzdbd.as3core.components.supportClasses.RoundCornerTextInput"/>
+	<component id="InfoText" class="com.xzdbd.as3core.components.labels.InfoText"/>
+	<component id="LabelTitle" class="com.xzdbd.as3core.components.labels.LabelTitle"/>
+	<component id="LinkLabel" class="com.xzdbd.as3core.components.labels.LinkLabel"/>
+	<component id="NoticeLabel" class="com.xzdbd.as3core.components.labels.NoticeLabel"/>
+	<component id="UnitLabel" class="com.xzdbd.as3core.components.labels.UnitLabel"/>
+	<component id="PageControl" class="com.xzdbd.as3core.components.PageControl"/>
+	<component id="PictureUploader" class="com.xzdbd.as3core.components.PictureUploader"/>
+	<component id="SingleLine" class="com.xzdbd.as3core.components.SingleLine"/>
+	<component id="GridItemContent" class="com.xzdbd.as3core.components.GridItemContent"/>
+	
+	<!-- events -->
+	<component id="LinkEvent" class="com.xzdbd.as3core.events.LinkEvent"/>
+	
+	<!-- managers -->
+	<component id="RightClickManager" class="com.xzdbd.as3core.managers.RightClickManager"/>
+	
+	<!-- services -->
+	<component id="ServiceEvent" class="com.xzdbd.as3core.services.ServiceEvent"/>
+	<component id="WebServiceHelper" class="com.xzdbd.as3core.services.WebServiceHelper"/>
+	
+	<!-- skins -->
+	<component id="CustomMenuSepSkin" class="com.xzdbd.as3core.skins.CustomMenuSepSkin"/>
+	<component id="IconButtonSkin" class="com.xzdbd.as3core.skins.IconButtonSkin"/>
+	<component id="MenuBorderSkin" class="com.xzdbd.as3core.skins.MenuBorderSkin"/>
+	
+	<!-- utils -->
+	<component id="ArrayCollectionFilter" class="com.xzdbd.as3core.utils.ArrayCollectionFilter"/>
+	<component id="FilterItem" class="com.xzdbd.as3core.utils.supportClasses.FilterItem"/>
+	<component id="Common" class="com.xzdbd.as3core.utils.Common"/>
+	<component id="ConfigLoader" class="com.xzdbd.as3core.utils.ConfigLoader"/>
+	<component id="PopupEffect" class="com.xzdbd.as3core.utils.PopupEffect"/>
+	<component id="TreeUtils" class="com.xzdbd.as3core.utils.TreeUtils"/>
+	<component id="CookieUtils" class="com.xzdbd.as3core.utils.CookieUtils"/>
+	
+</componentPackage>
+
+
+
+
+
+
+

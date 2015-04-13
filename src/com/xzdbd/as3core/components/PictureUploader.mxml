@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!---
+	图片上传组件，包括上传文件列表和上传控制等实现.
+
+	@mxml
+	<p> 
+	下面代码演示如何使用 <code>PictureUploader</code> 类： 
+	<p>首先，引用命名空间  <b><code>xmlns:as3core="http://www.xzdbd.net/2013/flex/as3core"</code></b>，调用如下：</p>
+	<pre>
+	&lt;as3core:PictureUploader
+		<b>Properties</b>
+		uploadUrl="{ViewerContainer.getInstance().configData.picUploadUrl}"
+		params="type=sluice&object=6103106008"
+		
+		<b>Styles</b> 
+		width="100%" 
+		height="100%" /&gt;
+
+		<b>Events</b>
+		closeFileUpload="closeFileUpload(event)"
+	
+	其中，ViewerContainer 为框架FlexViewer中的一个顶级类，closeFileUpload(event) 方法是处理离开上传界面时的处理函数.
+	</pre>
+	</p>
+
+	@author xzdbd（修改自 庄锡伟 原有组件）
+	创建于 2013-6-22,下午1:53:31.
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:labels="com.xzdbd.as3core.components.labels.*" 
+		 xmlns:buttons="com.xzdbd.as3core.components.buttons.*"
+		 xmlns:as3core="com.xzdbd.as3core.*" 
+		 xmlns:supportClasses="com.xzdbd.as3core.components.supportClasses.*"
+		 width="380"
+		 creationComplete="init()" >
+	
+	<fx:Metadata>
+		/**
+		 * 离开当前上传页面时派发该事件。
+		 */
+		[Event(name="closeFileUpload", type="flash.events.Event")]
+		
+		/**
+		* 上传成功完成时派发该事件。
+		*/
+		[Event(name="uploadCompleted", type="com.xzdbd.as3core.events.CommonEvent")]
+	</fx:Metadata>
+
+	<fx:Script>
+		<![CDATA[
+			import com.xzdbd.as3core.IconAssets;
+			import com.xzdbd.as3core.events.CommonEvent;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.utils.UIDUtil;
+			
+			//最大上传文件大小(单位：MB)
+			private static const MAX_SIZE:Number = 50;
+
+			//选择文件时要用到的 FileReferenceList 对象。
+			private var fileReferenceList:FileReferenceList;
+			
+			//当前上传列表中文件集合
+			[Bindable]
+			private var selectedFiles:ArrayCollection;
+			
+			//成功上传并重命名的文件名集合
+			[Bindable]
+			private var completedUploadFiles:ArrayCollection;
+
+			//当前上传列表中文件总大小。
+			private var filesTotalSize:Number=0;
+			
+			//上传文件用到的 URLRequest 对象。
+			private var uploadUrlRequest:URLRequest;
+			
+			//文件类型过滤器
+			private var fileFilter:FileFilter;
+			
+			//文件上传提示信息
+			[Bindable]
+			private var uploadInfo:String;
+			
+			//文件上传进行中标识
+			[Bindable]
+			private var isUploading:Boolean;
+			
+			//上传文件计数器
+			//表示单次已上传的文件数
+			private var uploadFileCount:int;
+			
+			
+			private var _params:Object;
+			
+			private var _uploadUrl:String;
+			
+			private var _uploadRootPath:String;
+
+						
+			/**
+			 * 上传文件附加参数字符串（即为 URL 中 "?" 后面的部分）。
+			 */
+			public function get params():Object
+			{
+				return _params;
+			}
+			/**
+			 * @private
+			 */
+			public function set params(value:Object):void
+			{
+				_params = value;
+			}
+			
+			/**
+			 * 后台接受附件的地址，这里是一个servlet，你可以自己定义为 jsp、php、asp、action 等。
+			 */
+			public function get uploadUrl():String
+			{
+				return _uploadUrl;
+			}
+			/**
+			 * @private
+			 */
+			public function set uploadUrl(value:String):void
+			{
+				_uploadUrl = value;
+			}
+			
+			/**
+			 * 图片上传根路径。
+			 */
+			[Bindable]
+			public function get uploadRootPath():String
+			{
+				return _uploadRootPath;
+			}
+			
+			/**
+			 * @private
+			 */
+			public function set uploadRootPath(value:String):void
+			{
+				_uploadRootPath = value;
+			}
+			
+ 			
+			
+			/**
+			 * 组件初始化函数。
+			 */
+			private function init():void
+			{
+				isUploading = false;
+				
+				fileReferenceList = new FileReferenceList();
+				selectedFiles = new ArrayCollection();
+				completedUploadFiles = new ArrayCollection();
+				fileFilter = new FileFilter("图片 (*.jpg, *.jpeg, *.gif,*.png)", "*.jpg; *.jpeg; *.gif; *.png");
+				
+				//文件选择监听
+				fileReferenceList.addEventListener(Event.SELECT, selectFilterHandler);
+				
+				refreshText();
+			}
+			
+			/**
+			 * 当外部点击指定记录的取消按钮是调用该函数。
+			 * <br>取消指定文件的上传（针对尚未上传完成的文件）。
+			 * <br>说明：仅供内部调用。
+			 * @private
+			 */
+			public function cancelSelectedFile(event:MouseEvent):void
+			{
+				var delfile:FileReference = filesDG.selectedItem as FileReference;
+				cancelFileUpload(delfile);
+			}
+			
+			/**
+			 * 当一次文件浏览选择结束时调用。
+			 */
+			private function selectFilterHandler(event:Event):void
+			{
+				var countsize:Number=0;
+				
+				//计算附件总大小
+				for each (var _file:FileReference in fileReferenceList.fileList)
+				{
+					countsize+=_file.size;
+				}
+				countsize += filesTotalSize;
+				if (countsize > MAX_SIZE * (1024 * 1024))
+				{
+					Alert.show("文件总大小不能超过" + MAX_SIZE + " MB ！", "操作提示...");
+				}
+				else
+				{
+					for each (var file:FileReference in fileReferenceList.fileList)
+					{
+						if (! isExistInList(file))
+						{
+							selectedFiles.addItem(file);
+							refreshText();
+						}
+					}
+				}
+			}
+			
+			/**
+			 * 新增上传文件时调用该方法。
+			 * <br>该方法实现了对本地文件的浏览和选择。
+			 */
+			private function addFileButtonClickHandler(event:Event):void
+			{
+				refreshText();
+				fileReferenceList.browse([ fileFilter ]);
+			}
+			
+			/**
+			 * 清空当前上传列表。
+			 */
+			private function clearFilesButtonClickHandler(event:Event):void
+			{
+				Alert.show("您确定要清空全部待上传文件？", "操作提示...", Alert.YES | Alert.NO, filesDG, alertHandler, null, Alert.NO);
+				function alertHandler(event:CloseEvent):void
+				{
+					if (event.detail == Alert.YES)
+					{
+						selectedFiles.removeAll();
+						refreshText();
+					}
+				}
+			}
+			
+			/**
+			 * 取消指定文件的上传（针对尚未上传完成的文件）。
+			 * @param fileRef 指定文件的 FileReference 对象。
+			 */
+			private function cancelFileUpload(fileRef:FileReference):void
+			{
+				var index:int = selectedFiles.getItemIndex(fileRef);
+				selectedFiles.removeItemAt(index);
+				refreshText();
+			}
+			
+			/**
+			 * 关闭文件上传窗口时调用该函数，向外派发一个 "closeFileUpload" 事件。
+			 */
+			private function closeBtn_ClickHandler(event:MouseEvent):void
+			{
+				isUploading = false;
+				selectedFiles.removeAll();
+				refreshText();
+				dispatchEvent(new Event("closeFileUpload", true));
+			}
+			
+			/**
+			 * 判断选择的文件与列表中的文件是否重复。
+			 * <br>如果选择文件的名字、大小和最后修改时间完全一样，则这两个文件重复。
+			 */
+			private function isExistInList(file:FileReference):Boolean
+			{
+				var result:Boolean=false;
+				for (var i:int=0; i < selectedFiles.length; i++)
+				{
+					var fileRef:FileReference = selectedFiles[i] as FileReference;
+					
+					//如果选择文件的名字、大小和最后修改时间完全一样，则这两个文件重复
+					if (file.name == fileRef.name || file.modificationDate == fileRef.modificationDate || file.size == fileRef.size)
+					{
+						result = true;
+						break;
+					}
+					else
+					{
+						result=false;
+					}
+				}
+				
+				return result;
+			}
+			
+			/**
+			 * 执行上传文件操作，将文件列表中的所有文件上传至服务器中。
+			 */
+			private function uploadfile():void
+			{
+				if (selectedFiles.length > 0)
+				{
+					if(params && uploadRootPath && uploadUrl)
+					{
+						isUploading = true;
+						
+						var projectId:String = params.id.toString();
+						var projectType:String = params.type.toString();
+						var uploadFolderPath:String = uploadRootPath + "\\" + projectType + "\\" + projectId + "\\";
+						
+						uploadUrlRequest = new URLRequest();
+						uploadFileCount = selectedFiles.length;
+						completedUploadFiles.removeAll();
+						for (var i:int=0; i < selectedFiles.length; i++)
+						{
+							var fileRef:FileReference = selectedFiles[i] as FileReference;
+							try
+							{
+								var newGUID:String = UIDUtil.createUID();  
+								uploadUrlRequest.url = uploadUrl + "?uploadPath=" + uploadFolderPath + "&guid=" + newGUID;
+								fileRef.addEventListener(Event.COMPLETE, uploadCompletedHandler);
+								fileRef.upload(uploadUrlRequest);
+								
+								//保存到上传完成集合
+								completedUploadFiles.addItem({ fileName: fileRef.name, 
+															   storeCode: newGUID, 
+															   relativePath: "/" + projectType + "/" + projectId + "/" +  newGUID + fileRef.type});
+							}
+							catch (error:Error)
+							{
+								uploadFileCount --;
+								Alert.show("文件(" + fileRef.name + "." + fileRef.type + ")上传失败，详细信息如下：\n" + error.message, "操作提示...");
+							}
+						}
+						
+						
+					}
+				}
+				
+				function uploadCompletedHandler(event:Event):void
+				{
+					uploadFileCount --;
+					var file:FileReference = event.target as FileReference;
+					file.removeEventListener(Event.COMPLETE, uploadCompletedHandler);
+					if(uploadFileCount <= 0)
+					{
+						isUploading = false;
+						
+						dispatchEvent(new CommonEvent("uploadCompleted", completedUploadFiles));
+						
+						//全部上传完成，更新文本提示
+						refreshText(true);
+						
+						//延时清空列表
+						setTimeout(function():void{
+							selectedFiles.removeAll();
+						}, 300);
+					}
+				}
+			}
+
+			/**
+			 * 更新上传提示信息字符串。
+			 */
+			private function refreshText(isCompeted:Boolean=false):void
+			{
+				//重新统计附件大小，将原来的信息清0
+				filesTotalSize = 0;
+				for (var i:int=0; i < selectedFiles.length; i++)
+				{
+					filesTotalSize += FileReference(selectedFiles[i]).size;
+				}
+				if(isCompeted)
+				{
+					uploadInfo = "提示：文件已全部成功上传！";
+				}
+				else
+				{
+					uploadInfo = "提示：文件总大小：" + (filesTotalSize / (1024 * 1024)).toString().slice(0, 4) + " MB （文件总大小不能超过 50 MB）。";
+				}
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+
+	</fx:Declarations>
+	
+	<s:VGroup width="100%"
+			  paddingLeft="4" paddingRight="3"
+			  paddingTop="1" paddingBottom="1"
+			  gap="2" >
+		<s:HGroup width="100%" verticalAlign="middle" paddingRight="4" gap="4">
+			<labels:LabelTitle title="照片上传" width="100%" paddingTop="1"/>
+			<buttons:ButtonImage source="{IconAssets.iconClass('backIcon')}" 
+								 toolTip="返回"
+								 click="closeBtn_ClickHandler(event)" />
+		</s:HGroup>
+		
+		<!--- @private -->
+		<mx:DataGrid id="filesDG" 
+					 rowCount="5"
+					 dataProvider="{selectedFiles}"
+					 alternatingItemColors="{[0XF3F3F3, 0xFEF3E4]}"
+					 borderVisible="true"
+					 borderColor="0x85c6f0"
+					 verticalScrollPolicy="auto"
+					 dropShadowVisible="false"
+					 resizableColumns="false"
+					 draggableColumns="false">
+			<mx:columns>
+				<mx:DataGridColumn headerText="文件名" width="120" sortable="false">
+					<mx:itemRenderer>
+						<fx:Component>
+							<mx:Label text="{data.name}" textAlign="left" left="5" />
+						</fx:Component>
+					</mx:itemRenderer>
+				</mx:DataGridColumn>
+				<mx:DataGridColumn headerText="大小(Byte)" dataField="size" width="80" sortable="false"/>
+				<mx:DataGridColumn headerText="上传进度" sortable="false" width="120"
+								   itemRenderer="com.xzdbd.as3core.components.supportClasses.UploadProgressBar" />
+				<mx:DataGridColumn headerText="移除" sortable="false" width="50">
+					<mx:itemRenderer>
+						<fx:Component>
+							<supportClasses:CancelUploadButton cancelUploadEvent="outerDocument.cancelSelectedFile(event)" />
+						</fx:Component>
+					</mx:itemRenderer>
+				</mx:DataGridColumn>
+			</mx:columns>
+		</mx:DataGrid>
+		
+		<s:HGroup width="100%" paddingTop="3" paddingBottom="2" gap="3" horizontalAlign="right" verticalAlign="middle">
+			<mx:Button label="添加..." fontSize="13"
+					   click="addFileButtonClickHandler(event)"
+					   enabled="{! isUploading}"
+					   icon="{IconAssets.iconClass('addFileIcon')}" fontFamily="微软雅黑" />
+			<mx:Button label="上传" fontSize="13"
+					   click="uploadfile()"
+					   enabled="{! isUploading &amp;&amp; selectedFiles.length &gt; 0}"
+					   icon="{IconAssets.iconClass('uploadFileIcon')}" 
+					   fontFamily="宋体" />
+			<mx:Button label="清空" fontSize="13"
+					   click="clearFilesButtonClickHandler(event)"
+					   enabled="{! isUploading &amp;&amp; selectedFiles.length &gt; 0}"
+					   icon="{IconAssets.iconClass('removeFileIcon')}" fontFamily="宋体" />
+		</s:HGroup>
+
+		<mx:Text text="{uploadInfo}" fontSize="12" fontFamily="微软雅黑"/>
+	</s:VGroup>
+</s:Group>
+
+
+
+
+
+
+

@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!---
+	自定义单位文本组件.
+
+	<p>该组件定义了一个包含一个上标的单位文本组件，形如 km³/s，分为三部分组装，即：km + ³ + /s.</p>
+
+	@mxml
+	<p> 
+	下面代码演示如何使用 <code>UnitLabel</code> 类： 
+	<p>首先，引用命名空间  <b><code>xmlns:as3core="http://www.xzdbd.net/2013/flex/as3core"</code></b>，调用如下：</p>
+	<pre>
+	&lt;as3core:UnitLabel 
+		<b>Properties</b>
+		leftText="km"
+		superscript="3"
+		rightText="/s"
+	 
+		<b>Styles</b> 
+		textBold="false" 
+		useBracket="false"
+		color="0x000000" /&gt;
+	</pre>
+	</p>
+
+	@author xzdbd
+	创建于 2013-4-1,上午8:54:27.
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx">
+
+	<fx:Script>
+		<![CDATA[
+			//单位参数
+			private var _leftText:String="";
+			private var _superscript:String="";
+			private var _rightText:String="";
+
+			//单位文本是否加粗
+			private var _textBold:Boolean=false;
+			//单位文本颜色
+			private var _color:uint=0xFFFFFF;
+			//是否添加括号
+			private var _useBracket:Boolean=false;
+
+			/**
+			 * 单位文本颜色。
+			 */
+			[Bindable]
+			public function get color():uint
+			{
+				return _color;
+			}
+			/**
+			 * @private
+			 */
+			public function set color(value:uint):void
+			{
+				_color=value;
+			}
+
+			/**
+			 * 单位头部文本（即为上标左侧文本）。
+			 */
+			[Bindable]
+			public function get leftText():String
+			{
+				return _leftText;
+			}
+			/**
+			 * @private
+			 */
+			public function set leftText(value:String):void
+			{
+				_leftText=value;
+			}
+
+			/**
+			 * 单位文本是否加粗。
+			 * @default false。
+			 */
+			[Bindable]
+			public function get textBold():Boolean
+			{
+				return _textBold;
+			}
+			/**
+			 * @private
+			 */
+			public function set textBold(value:Boolean):void
+			{
+				_textBold=value;
+			}
+
+			/**
+			 * 单位上标文本。
+			 */
+			[Bindable]
+			public function get superscript():String
+			{
+				return _superscript;
+			}
+			/**
+			 * @private
+			 */
+			public function set superscript(value:String):void
+			{
+				_superscript=value;
+			}
+
+			/**
+			 * 单位尾部文本（即为上标右侧文本）。
+			 */
+			[Bindable]
+			public function get rightText():String
+			{
+				return _rightText;
+			}
+			/**
+			 * @private
+			 */
+			public function set rightText(value:String):void
+			{
+				_rightText=value;
+			}
+
+			/**
+			 * 是否使用括号将单位文本包围。
+			 * @default false。
+			 */
+			[Bindable]
+			public function get useBracket():Boolean
+			{
+				return _useBracket;
+			}
+			/**
+			 * @private
+			 */
+			public function set useBracket(value:Boolean):void
+			{
+				_useBracket=value;
+			}
+		]]>
+	</fx:Script>
+
+	<s:HGroup verticalAlign="top"
+			  gap="2">
+		<s:Label text="("
+				 visible="{useBracket}"
+				 includeInLayout="{useBracket}"
+				 color="{color}"
+				 fontWeight="{textBold ? 'bold' : 'normal'}"
+				 paddingRight="1"/>
+		<s:Label text="{leftText}"
+				 visible="{leftText != ''}"
+				 includeInLayout="{leftText != ''}"
+				 color="{color}"
+				 fontWeight="{textBold ? 'bold' : 'normal'}"/>
+		<s:Label text="{superscript}"
+				 visible="{superscript != ''}"
+				 includeInLayout="{superscript != ''}"
+				 color="{color}"
+				 fontSize="8"
+				 fontWeight="{textBold ? 'bold' : 'normal'}"/>
+		<s:Label text="{rightText}"
+				 visible="{rightText != ''}"
+				 includeInLayout="{rightText != ''}"
+				 color="{color}"
+				 fontWeight="{textBold ? 'bold' : 'normal'}"/>
+		<s:Label text=")"
+				 visible="{useBracket}"
+				 includeInLayout="{useBracket}"
+				 color="{color}"
+				 fontWeight="{textBold ? 'bold' : 'normal'}" 
+				 paddingLeft="1"/>
+	</s:HGroup>
+
+</s:Group>
+
+
+
+
+
+
+
+
+
+
+

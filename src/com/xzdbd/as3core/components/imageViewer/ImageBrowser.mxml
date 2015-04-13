@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!---
+	图片浏览组件类，以“大图+缩略图列表”的形式呈现.
+
+	@mxml
+	<p> 
+	下面代码演示如何使用 <code>ImageBrowser</code> 类： 
+	<p>首先，引用命名空间  <b><code>xmlns:as3core="http://www.xzdbd.net/2013/flex/as3core"</code></b>，调用如下：</p>
+	<pre>
+	&lt;as3core:ImageBrowser
+		<b>Properties</b>
+		photoInfo="{pictures}"
+		
+		<b>Styles</b> 
+		width="400" 
+		height="100%"
+		
+		<b>Events</b> 
+		imageChanged="imageChangedHandler(event)" /&gt;
+	
+	其中，<code>pictures</code> 是由多个 <code>PhotoItem</code> 组成的 <code>ArrayCollection</code> 数据集.
+	</pre>
+	</p>
+
+	@author xzdbd
+	创建于 2013-4-22,下午1:53:31.
+-->
+<s:BorderContainer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				   xmlns:s="library://ns.adobe.com/flex/spark" 
+				   xmlns:mx="library://ns.adobe.com/flex/mx" 
+				   creationComplete="init()"
+				   width="100%" height="100%" 
+				   backgroundColor="0xFFFFFF" 
+				   borderVisible="false" >
+	
+	<fx:Metadata>
+		/**
+		 * 当控件中图片切换时派发。
+		 * @eventType com.xzdbd.as3core.components.imageViewer.ImageBrowser.IMAGE_CHANGED
+		 */
+		[Event(name="imageChanged", type="flash.events.Event")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.utils.clearInterval;
+			import flash.utils.setInterval;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.EffectEvent;
+			
+			/**
+			 * 图片切换完成事件常量。
+			 * @eventType imageChanged
+			 */
+			public static const IMAGE_CHANGED:String = "imageChanged";
+			
+			//滚动条状态
+			private static const LEAN_LEFT:String = "left";
+			private static const LEAN_RIGHT:String = "right";
+			private static const LEAN_NULL:String = "null";
+			
+			//缩略图宽度
+			private static const SMALL_IMAGE_WIDTH:Number = 65;
+			
+			//大图浏览器对象
+			private var freeImage:FreeImage;
+			
+			//当前切换到的图片
+			[Bindable]
+			private var currentImage:PhotoItem;
+			
+			//缩略图横向滚动条状态
+			[Bindable]
+			private var scrollState:String;
+			
+			//图片显示区的宽高比值
+			[Bindable]
+			private var ratio:Number;
+			
+			//图片缩略图列表滚动计时id
+			private var scrollIntetvalId:uint;
+			
+			//要显示的图片数据源
+			[Bindable]
+			private var _photoInfos:ArrayCollection;
+			
+			/**
+			 * 要显示的图片集数据源。
+			 * @param source 图片集数据源，接受的类型为 <code>ArrayCollection</code>。
+			 */
+			public function set photoInfos(source:ArrayCollection):void
+			{
+				_photoInfos = source;
+				init();
+			}
+			
+			/**
+			 * 获取当前切换到的图片对象。
+			 * @return 当前选择显示的图片对象 <code>PhotoItem</code> 。
+			 * 
+			 * @see com.xzdbd.as3core.components.imageViewer.PhotoItem
+			 */
+			public function getCurrentImage():PhotoItem
+			{
+				return currentImage;
+			}
+			
+			/**
+			 * MouseEvent.CLICK 事件的默认处理函数。
+			 * <p>单击图片缩略图片，显示常规大小图片。</p>
+			 */
+			protected function smallImage_clickHandler(event:MouseEvent):void
+			{
+				mainImgFadeOut.play();
+				currentImage = event.currentTarget.getRepeaterItem() as PhotoItem;
+			}
+			
+			/**
+			 * 常规大小图片组件中的 MouseEvent.CLICK 事件的默认处理函数。
+			 * <p>点击当前常规大小图片，弹出大图浏览窗口。</p>
+			 */
+			protected function mainImage_clickHandler(event:MouseEvent):void
+			{
+				var imageUrl:String = event.currentTarget.source.toString();
+				
+				//加载大图
+				freeImage.mainImage.load(imageUrl);
+			}
+			
+			/**
+			 * 初始化控件。
+			 */
+			private function init():void
+			{
+				freeImage = new FreeImage();
+				
+				//计算图片显示区宽高比值
+				ratio = this.width / (this.height-65) ;
+				
+				//初始化显示第一张图片
+				if(_photoInfos && _photoInfos.length > 0)
+				{
+					mainImgFadeOut.play();
+					currentImage = _photoInfos.getItemAt(0) as PhotoItem;
+					
+					//设置滚动条初始化停靠状态
+					scrollState = LEAN_LEFT;
+				}
+			}
+			
+			/**
+			 * 上一张图片隐藏效果播放完成后执行。
+			 * <p>该过程中，设置新图片路径，并添加图片加载完成监听。</p>
+			 */
+			private function fadeOutEffectEnd(event:EffectEvent):void
+			{
+				//初始
+				if(!mainImage.source)
+				{
+					mainImage.source = currentImage.filePath;
+					mainImage.addEventListener(Event.COMPLETE, imageLoadCompleted);
+				}
+				else
+				{
+					var preIgPath:String = mainImage.source.toString();
+					mainImage.source = currentImage.filePath;
+					if(mainImage.source == preIgPath)
+					{
+						//重设图片尺寸
+						resetPhotoSize();	
+						
+						//播放淡入效果，显示当前图片
+						mainImgFadeIn.play();
+						
+						//派发图片切换完成消息
+						dispatchEvent(new Event(IMAGE_CHANGED, true)); // bubbles
+					}
+					else
+					{
+						mainImage.addEventListener(Event.COMPLETE, imageLoadCompleted);
+					}
+				}
+				
+				//图片加载完成
+				function imageLoadCompleted(event:Event):void
+				{
+					//重设图片尺寸
+					resetPhotoSize();	
+					
+					//播放淡入效果，显示当前图片
+					mainImgFadeIn.play();
+					
+					//设置图片拍摄角度
+					//compass.rotateAngle = _curImage.angle;
+					
+					//派发图片切换完成消息
+					dispatchEvent(new Event(IMAGE_CHANGED));
+				}
+			}
+			
+			/**
+			 * 重新设置照片大小尺寸。
+			 * <p>该尺寸是根据当前照片显示区域大小及宽高比来计算的。</p>
+			 */
+			private function resetPhotoSize():void
+			{
+				//计算当前图片实际尺寸宽高比
+				var tmpRatio:Number = mainImage.contentWidth / mainImage.contentHeight;
+				
+				//当前图片实际尺寸宽高比大于容器宽高比，即当前图片尺寸由宽度来控制
+				if(tmpRatio >= ratio)
+				{
+					//图片实际尺寸完全小于容器尺寸，则显示其真实尺寸，否则就按比例压缩显示
+					if(mainImage.contentWidth < imageGroup.width)
+					{
+						mainImage.width = mainImage.contentWidth;
+						mainImage.height = mainImage.contentHeight;
+					}
+					else
+					{
+						mainImage.width = imageGroup.width;
+						mainImage.height = mainImage.contentHeight / (mainImage.contentWidth / mainImage.width);
+					}
+				}
+				
+				//当前图片实际尺寸宽高比小于容器宽高比，即当前图片尺寸由高度来控制
+				else
+				{
+					//图片实际尺寸完全小于容器尺寸，则显示其真实尺寸，否则就按比例压缩显示
+					if(mainImage.contentHeight < imageGroup.height)
+					{
+						mainImage.width = mainImage.contentWidth;
+						mainImage.height = mainImage.contentHeight;
+					}
+					else
+					{
+						mainImage.height = imageGroup.height;
+						mainImage.width = mainImage.contentWidth / (mainImage.contentHeight / mainImage.height);
+					}
+				}
+			}
+			
+			/**
+			 * 向左滚动缩略图列表。
+			 * <p>以Interval实现按像素移动滚动条位置来模拟列表滑动。</p>
+			 */
+			private function scrollLeft():void
+			{
+				//列表单次滚动的像素数
+				var delta:Number = (SMALL_IMAGE_WIDTH + 3) * 3;
+				var timeStep:Number = 100 / delta;
+				scrollIntetvalId = setInterval(moveScrollByStep, 1);
+				
+				function moveScrollByStep():void
+				{
+					hboxLength.horizontalScrollPosition = hboxLength.horizontalScrollPosition - 3;
+					delta = delta - 3;
+					
+					//如果到达单次像素数或者已移动到最左端，则停止调用。
+					if(delta <= 0 || hboxLength.horizontalScrollPosition <= 0)
+					{
+						scrollState = LEAN_NULL;
+						clearInterval(scrollIntetvalId);
+					}
+					
+					//设置滚动条停靠状态
+					if(hboxLength.horizontalScrollPosition <= 0)
+					{
+						scrollState = LEAN_LEFT;
+					}
+				}
+			}
+			
+			/**
+			 * 向右滚动缩略图列表。
+			 * <p>以Interval实现按像素移动滚动条位置来模拟列表滑动。</p>
+			 */
+			private function scrollRight():void
+			{
+				//列表单次滚动的像素数
+				var delta:Number = (SMALL_IMAGE_WIDTH + 3) * 3;
+				var timeStep:Number = 100 / delta;
+				scrollIntetvalId = setInterval(moveScrollByStep, 1);
+				var oldPos:Number = -1;
+				
+				function moveScrollByStep():void
+				{
+					//如果到达单次像素数或者已移动到最右端，则停止调用。
+					if(delta <= 0 || oldPos == hboxLength.horizontalScrollPosition)
+					{
+						scrollState = LEAN_NULL;
+						clearInterval(scrollIntetvalId);
+					}
+					//设置滚动条停靠状态
+					if(oldPos == hboxLength.horizontalScrollPosition)
+						scrollState = LEAN_RIGHT;
+					oldPos = hboxLength.horizontalScrollPosition;
+					hboxLength.horizontalScrollPosition = hboxLength.horizontalScrollPosition + 3;
+					delta = delta - 3;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!--- @private -->
+		<mx:Fade id="mainImgFadeIn" duration="300" alphaFrom="0" alphaTo="1.0" target="{mainImage}"/>
+		
+		<!--- @private -->
+		<mx:Fade id="mainImgFadeOut" duration="300" alphaFrom="1.0" alphaTo="0" target="{mainImage}" effectEnd="fadeOutEffectEnd(event)"/>
+		
+		<!--- @private -->
+		<mx:Fade id="fadeIn" duration="300" alphaFrom="0" alphaTo="1.0" />
+		
+		<!--- @private -->
+		<mx:Fade id="fadeOut" duration="300" alphaFrom="1.0" alphaTo="0" />
+	</fx:Declarations>
+	
+	<s:layout>
+		<s:VerticalLayout horizontalAlign="center" 
+						  gap="1"
+						  paddingTop="3" paddingBottom="4"
+						  paddingLeft="3" paddingRight="3" />
+	</s:layout>
+	
+	<s:Group width="100%" 
+			 height="100%"
+			 rollOver="{remarkBC.visible = true;}"
+			 rollOut="{remarkBC.visible = false;}">
+		
+		<!--- @private -->
+		<s:VGroup id="imageGroup"
+				  width="100%" height="100%" 
+				  horizontalAlign="center" verticalAlign="middle">
+			
+			<!--- @private -->
+			<mx:Image id="mainImage"
+					  click="mainImage_clickHandler(event)"
+					  showEffect="fadeIn" hideEffect="fadeOut"
+					  buttonMode="true"
+					  toolTip="点击查看大图"
+					  maintainAspectRatio="true"/>
+		</s:VGroup>
+		
+		<!--- 
+			@private
+			图片下方备注说明。
+		-->
+		<s:BorderContainer id="remarkBC"
+						   showEffect="fadeIn"
+						   hideEffect="fadeOut"
+						   x="0" y="{imageGroup.height - remarkBC.height}"
+						   width="100%" height="40"
+						   backgroundColor="0x000000"
+						   backgroundAlpha="0.7">
+			<mx:Text htmlText="{'    ' + currentImage.remark ? currentImage.remark : '' }" 
+					 color="0xFFFFFF"
+					 fontFamily="微软雅黑" 
+					 width="100%" 
+					 letterSpacing="1" 
+					 leading="5"/>
+		</s:BorderContainer>
+	</s:Group>
+	
+	<s:HGroup width="{this.width-3}" height="65" gap="2" verticalAlign="middle">
+		<s:Image source="@Embed('./images/scrollLeft.png')" 
+				 click="scrollLeft()"
+				 enabled="{_photoInfos.length > 0 &amp;&amp; scrollState != LEAN_LEFT}" 
+				 buttonMode="true"
+				 width="16" height="40"/>
+		
+		<!--- @private -->
+		<mx:HBox id="hboxLength" width="{this.width - 38}" height="65" horizontalScrollPolicy="off" horizontalGap="3">
+			
+			<!--- @private -->
+			<mx:Repeater id="photosRepeater" dataProvider="{_photoInfos}" width="100%">
+				<mx:Canvas>
+					<mx:Image source="{photosRepeater.currentItem.filePath}"
+							  width="65" height="60"
+							  buttonMode="true"
+							  maintainAspectRatio="false"
+							  click="smallImage_clickHandler(event)" />
+					<mx:VBox width="65" height="18"
+							 backgroundColor="0xFFFFFF" 
+							 backgroundAlpha="0.7"
+							 paddingBottom="0"
+							 y="42"
+							 horizontalAlign="center"
+							 verticalAlign="bottom" 
+							 visible="{photosRepeater.currentIndex == _photoInfos.getItemIndex(currentImage)}">
+						<s:Label text="{photosRepeater.currentIndex + 1} / {_photoInfos.length}" 
+								 color="0x333333"/>
+					</mx:VBox>
+				</mx:Canvas>
+			</mx:Repeater>	
+		</mx:HBox>
+		
+		<s:Image source="@Embed('./images/scrollRight.png')" 
+				 click="scrollRight()"
+				 enabled="{_photoInfos.length > 6 &amp;&amp; scrollState != LEAN_RIGHT}"
+				 buttonMode="true"
+				 width="16" height="40" />
+	</s:HGroup>
+</s:BorderContainer>
+
+
+
+
+
+
+
+

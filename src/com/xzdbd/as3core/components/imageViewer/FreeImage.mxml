@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!---
+	大图浏览组件，支持图片的自由平移和缩放.
+
+	@author xzdbd
+	创建于 2013-4-22,下午5:08:04.
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:ns="http://www.xzdbd.net/2013/flex/as3core"
+		 creationComplete="init()" >
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.core.FlexGlobals;
+			import mx.events.EffectEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			
+			//保存上一鼠标状态对应位置
+			private var oldX:Number;
+			private var oldY:Number;
+			
+			//图片在浏览器窗口中的显示的大小与实际大小的比例
+			private var imageRatio:Number = 1.0;
+			
+			private function init():void
+			{
+				this.width = FlexGlobals.topLevelApplication.stage.stageWidth;
+				this.height = FlexGlobals.topLevelApplication.stage.stageHeight;
+				resetCloseButtonPos();
+			}
+			
+			/**
+			 * MouseEvent.MOUSE_DOWN 事件的默认处理函数。
+			 * <p> 鼠标主键按下事件触发，记录当前鼠标位置。</p>
+			 */
+			protected function mainImage_mouseDownHandler(event:MouseEvent):void
+			{
+				oldX = event.stageX;
+				oldY = event.stageY;
+			}
+			
+			/**
+			 * MouseEvent.MOUSE_MOVE 事件的默认处理函数。
+			 * <p> 鼠标移动，控制图片平移。</p>
+			 */
+			protected function mainImage_mouseMoveHandler(event:MouseEvent):void
+			{
+				//是否为拖拽移动
+				if(event.buttonDown)
+				{
+					var x:Number = event.stageX - oldX;
+					var y:Number = event.stageY - oldY;
+					oldX = event.stageX;
+					oldY = event.stageY; 
+					
+					//移动图片
+					mainImage.move(mainImage.x + x, mainImage.y + y);
+					
+					//动态重设关闭按钮位置
+					resetCloseButtonPos();
+				}
+				
+				//Sprite(event.currentTarget).startDrag();
+			}
+			
+			/**
+			 * MouseEvent.MOUSE_UP 事件的默认处理函数。
+			 */
+			protected function mainImage_mouseUpHandler(event:MouseEvent):void
+			{
+				//Sprite(event.currentTarget).stopDrag();
+			}
+			
+			/**
+			 * MouseEvent.MOUSE_WHEEL 事件的默认处理函数。
+			 * <p> 鼠标滚轮事件触发，控制图片进行缩放。</p>
+			 */
+			protected function mainImage_mouseWheelHandler(event:MouseEvent):void
+			{
+				//以组件默认中心点为中心进行缩放，为Zoom效果
+				var w:Number = event.delta;
+				var z:Number = imageZoomEffect.zoomHeightTo;
+				
+				//放大，默认允许最大放大3倍
+				/*if(w > 0 && z < 3)
+				{
+					imageZoomEffect.stop();
+					imageZoomEffect.zoomHeightTo +=0.1;
+					imageZoomEffect.zoomWidthTo +=0.1;
+					imageZoomEffect.play();
+				}*/
+				
+				//缩小，默认允许最小缩小五倍
+				/*if(w < 0 && z > 0.4)
+				{
+					imageZoomEffect.stop();
+					imageZoomEffect.zoomHeightTo -=0.1;
+					imageZoomEffect.zoomWidthTo -=0.1;
+					imageZoomEffect.play();
+				}*/
+				
+				//以鼠标点坐标为中心缩放，无Zoom效果
+				if (event.delta > 0 && mainImage.scaleX < 5)
+				{
+					mainImage.scaleX += 0.1;
+					mainImage.scaleY += 0.1;
+				}
+				else if(event.delta < 0 && mainImage.scaleX > 0.2)
+				{
+					mainImage.scaleX -= 0.1;
+					mainImage.scaleY -= 0.1;
+				}
+				mainImage.x = mouseX - (event.localX * imageRatio) * (event.currentTarget.scaleX);
+				mainImage.y = mouseY - (event.localY * imageRatio) * (event.currentTarget.scaleY);
+				
+				resetCloseButtonPos();
+			}
+			
+			/**
+			 * 图片加载完成事件的默认处理函数。
+			 * <p> 该函数中多是设置图片显示参数。</p>
+			 */
+			protected function mainImage_completeHandler(event:Event):void
+			{
+				//恢复图片缩放比例为正常大小
+				mainImage.scaleX = 1.0;
+				mainImage.scaleY = 1.0;
+				
+				//根据图片真实尺寸调整显示尺寸，如果图片真实尺寸超过浏览器窗口尺寸，则填充满浏览器；如果图片真实尺寸在浏览器窗口范围以内，则以真实尺寸显示。
+				if(mainImage.contentWidth > FlexGlobals.topLevelApplication.stage.stageWidth ||
+					mainImage.contentHeight > FlexGlobals.topLevelApplication.stage.stageHeight)
+				{
+					if(mainImage.contentWidth > FlexGlobals.topLevelApplication.stage.stageWidth && 
+						mainImage.contentHeight <= FlexGlobals.topLevelApplication.stage.stageHeight)
+					{
+						imageRatio = FlexGlobals.topLevelApplication.stage.stageWidth / mainImage.contentWidth;
+						mainImage.width = FlexGlobals.topLevelApplication.stage.stageWidth;
+						mainImage.height = mainImage.contentHeight * imageRatio;
+					}
+					else if(mainImage.contentWidth <= FlexGlobals.topLevelApplication.stage.stageWidth && 
+						mainImage.contentHeight > FlexGlobals.topLevelApplication.stage.stageHeight)
+					{
+						imageRatio = FlexGlobals.topLevelApplication.stage.stageHeight / mainImage.contentHeight;
+						mainImage.height = FlexGlobals.topLevelApplication.stage.stageHeight;
+						mainImage.width = mainImage.contentWidth * imageRatio;
+					}
+					else if(mainImage.contentWidth > FlexGlobals.topLevelApplication.stage.stageWidth && 
+						mainImage.contentHeight > FlexGlobals.topLevelApplication.stage.stageHeight)
+					{
+						var browserRatio:Number = FlexGlobals.topLevelApplication.stage.stageWidth / FlexGlobals.topLevelApplication.stage.stageHeight;
+						var imageContentRatio:Number = mainImage.contentWidth / mainImage.contentHeight;
+						
+						if(imageContentRatio > browserRatio)
+						{
+							imageRatio = FlexGlobals.topLevelApplication.stage.stageWidth / mainImage.contentWidth;
+							mainImage.width = FlexGlobals.topLevelApplication.stage.stageWidth;
+							mainImage.height = mainImage.contentHeight * imageRatio;
+						}
+						else
+						{
+							imageRatio = FlexGlobals.topLevelApplication.stage.stageHeight / mainImage.contentHeight;
+							mainImage.height = FlexGlobals.topLevelApplication.stage.stageHeight;
+							mainImage.width = mainImage.contentWidth * imageRatio;
+						}
+					}
+				}
+				else
+				{
+					//使图片以实际尺寸显示
+					mainImage.width = mainImage.contentWidth;
+					mainImage.height = mainImage.contentHeight;
+					imageRatio = 1.0;
+				}
+				
+				//设置图片弹出位置为浏览器中央
+				mainImage.x = (this.width - mainImage.width) / 2;
+				mainImage.y = (this.height - mainImage.height) / 2;
+				
+				//平滑处理
+				Bitmap(mainImage.content).smoothing = true;
+				
+				//重设关闭按钮位置
+				resetCloseButtonPos();
+				
+				//弹出图片组价
+				popupImage();
+			}
+			
+			/**
+			 * 图片缩放效果开始时的默认处理函数。
+			 */
+			protected function imageZoomEffect_effectEndHandler(event:EffectEvent):void
+			{
+				//设置图片弹出位置为浏览器中央
+				//mainImage.x = (this.width - mainImage.width) / 2;
+				//mainImage.y = (this.height - mainImage.height) / 2;
+				
+				resetCloseButtonPos();
+			}
+			
+			/**
+			 * 图片缩放效果结束时的默认处理函数。
+			 */
+			protected function imageZoomEffect_effectStartHandler(event:EffectEvent):void
+			{
+				resetCloseButtonPos();
+			}
+			
+			/**
+			 * 弹出图片大图组件。
+			 */
+			private function popupImage():void
+			{
+				if(! this.isPopUp)
+				{
+					//弹出图片
+					PopUpManager.addPopUp(this, FlexGlobals.topLevelApplication as DisplayObject, true);
+					PopUpManager.centerPopUp(this);
+				}
+			}
+			
+			/**
+			 * 动态重设关闭按钮的位置，使其保持在屏幕以内。
+			 */
+			private function resetCloseButtonPos():void
+			{
+				//FlexGlobals.topLevelApplication.stage对应Flex顶级舞台
+				if(closeBtn.x + closeBtn.width > FlexGlobals.topLevelApplication.stage.stageWidth)
+				{
+					closeBtn.x = FlexGlobals.topLevelApplication.stage.stageWidth - closeBtn.width - 5;
+				}
+				
+				closeBtn.y = closeBtn.y < 0 ? 5 : closeBtn.y;
+			}
+			
+			/**
+			 * 关闭当前弹出
+			 */
+			private function closeQueryWindow():void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<mx:Zoom id="imageZoomEffect" 
+				 target="{mainImage}"  
+				 zoomHeightTo="1"
+				 zoomWidthTo="1" 
+				 duration="300"
+				 effectStart="imageZoomEffect_effectStartHandler(event)"
+				 effectEnd="imageZoomEffect_effectEndHandler(event)"/>  
+		
+		<s:Resize id="resizeEffect" 
+				  duration="50" />
+			
+		<mx:Parallel id="contract" target="{mainImage}">
+			<mx:AnimateProperty id="animateProperty"
+								property="scaleX"
+								duration="400"
+								target="{mainImage}"/> 
+			
+			<mx:AnimateProperty id="animateProperty2"
+								property="scaleY"
+								duration="400"
+								target="{mainImage}"/> 
+		</mx:Parallel>
+	</fx:Declarations>
+	
+	<!--- 全屏图对象。 -->
+	<mx:Image id="mainImage"
+			  complete="mainImage_completeHandler(event)"
+			  mouseDown="mainImage_mouseDownHandler(event)"
+			  mouseMove="mainImage_mouseMoveHandler(event)"
+			  mouseUp="mainImage_mouseUpHandler(event)"
+			  mouseWheel="mainImage_mouseWheelHandler(event)"
+			  x="{(this.width - mainImage.width) / 2}"
+			  y="{(this.height - mainImage.height) / 2}"/>
+	
+	<!--- 全屏图右上角的关闭按钮。 -->
+	<ns:ButtonImage id="closeBtn"
+					x="{mainImage.x + (mainImage.scaleX * mainImage.width) + 5}" 
+					y="{mainImage.y - 25}"
+					source="@Embed('./images/close.png')" 
+					click="closeQueryWindow()" 
+				    rollOver="{closeBtn.alpha = 1.0}"
+				    rollOut="{closeBtn.alpha = 0.5}"
+				    alpha="0.5"
+					toolTip="关闭" />
+</s:Group>
+
+
+
+
+
+
+
+
+
